@@ -19,13 +19,19 @@ Session.set('editing_listname', null);
 // When editing todo text, ID of the todo
 Session.set('editing_itemname', null);
 
+// Navigate to the URL for the specified list_id (which in turn will
+// trigger the "Tracking selected list in URL" `page` callback below).
+var setList = function (list_id) {
+  page('/' + list_id);
+};
+
 // Subscribe to 'lists' collection on startup.
 // Select a list once data has arrived.
 Meteor.subscribe('lists', function () {
   if (!Session.get('list_id')) {
     var list = Lists.findOne({}, {sort: {name: 1}});
     if (list)
-      Router.setList(list._id);
+      setList(list._id);
   }
 });
 
@@ -79,7 +85,7 @@ Template.lists.lists = function () {
 
 Template.lists.events({
   'mousedown .list': function (evt) { // select list
-    Router.setList(this._id);
+    setList(this._id);
   },
   'click .list': function (evt) {
     // prevent clicks on <a> from refreshing the page.
@@ -98,7 +104,7 @@ Template.lists.events(okCancelEvents(
   {
     ok: function (text, evt) {
       var id = Lists.insert({name: text});
-      Router.setList(id);
+      setList(id);
       evt.target.value = "";
     }
   }));
@@ -288,21 +294,7 @@ Template.tag_filter.events({
 
 ////////// Tracking selected list in URL //////////
 
-var TodosRouter = Backbone.Router.extend({
-  routes: {
-    ":list_id": "main"
-  },
-  main: function (list_id) {
-    Session.set("list_id", list_id);
-    Session.set("tag_filter", null);
-  },
-  setList: function (list_id) {
-    this.navigate(list_id, true);
-  }
-});
-
-Router = new TodosRouter;
-
-Meteor.startup(function () {
-  Backbone.history.start({pushState: true});
+page('/:list_id', function (context) {
+  Session.set("list_id", context.params.list_id);
+  Session.set("tag_filter", null);
 });
